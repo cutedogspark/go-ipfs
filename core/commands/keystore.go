@@ -75,7 +75,7 @@ var keyGenCmd = &cmds.Command{
 		Tagline: "Create a new keypair",
 	},
 	Options: []cmds.Option{
-		cmds.StringOption(keyStoreTypeOptionName, "t", "type of the key to create: rsa, ed25519").WithDefault("rsa"),
+		cmds.StringOption(keyStoreTypeOptionName, "t", "type of the key to create: rsa, ed25519").WithDefault("ed25519"),
 		cmds.IntOption(keyStoreSizeOptionName, "s", "size of the key to generate"),
 		cmds.StringOption(keyFormatOptionName, "", "Encoding used for keys: Can either be a multibase encoded CID or a base58btc encoded multihash. Takes {b58mh|base36|k|base32|b...}.").WithDefault("base36"),
 	},
