@@ -341,7 +341,7 @@ var keyRenameCmd = &cmds.Command{
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption(keyStoreForceOptionName, "f", "Allow to overwrite an existing key."),
-		cmds.StringOption(keyFormatOptionName, "fmt", "output format: b58mh or b36cid").WithDefault("b36cid"),
+		cmds.StringOption(keyFormatOptionName, "", "output format: b58mh or b36cid").WithDefault("b36cid"),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env, req)
