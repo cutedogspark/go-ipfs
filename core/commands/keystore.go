@@ -77,7 +77,7 @@ var keyGenCmd = &cmds.Command{
 	Options: []cmds.Option{
 		cmds.StringOption(keyStoreTypeOptionName, "t", "type of the key to create: rsa, ed25519").WithDefault("rsa"),
 		cmds.IntOption(keyStoreSizeOptionName, "s", "size of the key to generate"),
-		cmds.StringOption(keyFormatOptionName, "", "output format: b58mh or b36cid").WithDefault("b36cid"),
+		cmds.StringOption(keyFormatOptionName, "", "output format: b58mh or base36").WithDefault("base36"),
 	},
 	Arguments: []cmds.Argument{
 		cmds.StringArg("name", true, false, "name of key to create"),
@@ -218,7 +218,7 @@ var keyImportCmd = &cmds.Command{
 		Tagline: "Import a key and prints imported key id",
 	},
 	Options: []cmds.Option{
-		cmds.StringOption(keyFormatOptionName, "", "output format: b58mh or b36cid").WithDefault("b58mh"),
+		cmds.StringOption(keyFormatOptionName, "", "output format: b58mh or base36").WithDefault("b58mh"),
 	},
 	Arguments: []cmds.Argument{
 		cmds.StringArg("name", true, false, "name to associate with key in keychain"),
@@ -293,7 +293,7 @@ var keyListCmd = &cmds.Command{
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption("l", "Show extra information about keys."),
-		cmds.StringOption(keyFormatOptionName, "", "output format: b58mh or b36cid").WithDefault("b36cid"),
+		cmds.StringOption(keyFormatOptionName, "", "output format: b58mh or base36").WithDefault("base36"),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		if err := verifyIDFormatLabel(req.Options[keyFormatOptionName].(string)); err != nil {
@@ -341,7 +341,7 @@ var keyRenameCmd = &cmds.Command{
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption(keyStoreForceOptionName, "f", "Allow to overwrite an existing key."),
-		cmds.StringOption(keyFormatOptionName, "", "output format: b58mh or b36cid").WithDefault("b36cid"),
+		cmds.StringOption(keyFormatOptionName, "", "output format: b58mh or base36").WithDefault("base36"),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env, req)
@@ -390,7 +390,7 @@ var keyRmCmd = &cmds.Command{
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption("l", "Show extra information about keys."),
-		cmds.StringOption(keyFormatOptionName, "", "output format: b58mh or b36cid").WithDefault("b36cid"),
+		cmds.StringOption(keyFormatOptionName, "", "output format: b58mh or base36").WithDefault("base36"),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env, req)
@@ -426,26 +426,28 @@ var keyRmCmd = &cmds.Command{
 
 func verifyIDFormatLabel(formatLabel string) error {
 	switch formatLabel {
-	case "b58mh":
+	case "b58mh", "v0":
 		return nil
-	case "b36cid":
-		return nil
+	default:
+		_, err := mbase.EncoderByName(formatLabel)
+		return err
 	}
-	return fmt.Errorf("invalid output format option")
 }
 
 func formatID(id peer.ID, formatLabel string) string {
 	switch formatLabel {
-	case "b58mh":
+	case "b58mh", "v0":
 		return id.Pretty()
-	case "b36cid":
-		if s, err := peer.ToCid(id).StringOfBase(mbase.Base36); err != nil {
+	default:
+		enc, err := mbase.EncoderByName(formatLabel)
+		if err != nil {
+			panic("invalid IPNS key encoding")
+		}
+		if s, err := peer.ToCid(id).StringOfBase(enc.Encoding()); err != nil {
 			panic(err)
 		} else {
 			return s
 		}
-	default:
-		panic("unreachable")
 	}
 }
 
