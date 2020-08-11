@@ -77,7 +77,7 @@ var keyGenCmd = &cmds.Command{
 	Options: []cmds.Option{
 		cmds.StringOption(keyStoreTypeOptionName, "t", "type of the key to create: rsa, ed25519").WithDefault("rsa"),
 		cmds.IntOption(keyStoreSizeOptionName, "s", "size of the key to generate"),
-		cmds.StringOption(keyFormatOptionName, "", "output format: b58mh or base36").WithDefault("base36"),
+		cmds.StringOption(keyFormatOptionName, "", "Encoding used for keys: Can either be a multibase encoded CID or a base58btc encoded multihash. Takes {b58mh|base36|k|base32|b...}.").WithDefault("base36"),
 	},
 	Arguments: []cmds.Argument{
 		cmds.StringArg("name", true, false, "name of key to create"),
@@ -104,7 +104,8 @@ var keyGenCmd = &cmds.Command{
 		if sizefound {
 			opts = append(opts, options.Key.Size(size))
 		}
-		if err = verifyIDFormatLabel(req.Options[keyFormatOptionName].(string)); err != nil {
+		keyEnc, err := keyEncoderFromString(req.Options[keyFormatOptionName].(string))
+		if err != nil {
 			return err
 		}
 
@@ -116,7 +117,7 @@ var keyGenCmd = &cmds.Command{
 
 		return cmds.EmitOnce(res, &KeyOutput{
 			Name: name,
-			Id:   formatID(key.ID(), req.Options[keyFormatOptionName].(string)),
+			Id:   keyEnc.FormatID(key.ID()),
 		})
 	},
 	Encoders: cmds.EncoderMap{
@@ -218,7 +219,7 @@ var keyImportCmd = &cmds.Command{
 		Tagline: "Import a key and prints imported key id",
 	},
 	Options: []cmds.Option{
-		cmds.StringOption(keyFormatOptionName, "", "output format: b58mh or base36").WithDefault("b58mh"),
+		cmds.StringOption(keyFormatOptionName, "", "Encoding used for keys: Can either be a multibase encoded CID or a base58btc encoded multihash. Takes {b58mh|base36|k|base32|b...}.").WithDefault("base36"),
 	},
 	Arguments: []cmds.Argument{
 		cmds.StringArg("name", true, false, "name to associate with key in keychain"),
@@ -229,6 +230,11 @@ var keyImportCmd = &cmds.Command{
 
 		if name == "self" {
 			return fmt.Errorf("cannot import key with name 'self'")
+		}
+
+		keyEnc, err := keyEncoderFromString(req.Options[keyFormatOptionName].(string))
+		if err != nil {
+			return err
 		}
 
 		file, err := cmdenv.GetFileArg(req.Files.Entries())
@@ -275,7 +281,7 @@ var keyImportCmd = &cmds.Command{
 
 		return cmds.EmitOnce(res, &KeyOutput{
 			Name: name,
-			Id:   formatID(pid, req.Options[keyFormatOptionName].(string)),
+			Id:   keyEnc.FormatID(pid),
 		})
 	},
 	Encoders: cmds.EncoderMap{
@@ -293,10 +299,11 @@ var keyListCmd = &cmds.Command{
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption("l", "Show extra information about keys."),
-		cmds.StringOption(keyFormatOptionName, "", "output format: b58mh or base36").WithDefault("base36"),
+		cmds.StringOption(keyFormatOptionName, "", "Encoding used for keys: Can either be a multibase encoded CID or a base58btc encoded multihash. Takes {b58mh|base36|k|base32|b...}.").WithDefault("base36"),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
-		if err := verifyIDFormatLabel(req.Options[keyFormatOptionName].(string)); err != nil {
+		keyEnc, err := keyEncoderFromString(req.Options[keyFormatOptionName].(string))
+		if err != nil {
 			return err
 		}
 
@@ -315,7 +322,7 @@ var keyListCmd = &cmds.Command{
 		for _, key := range keys {
 			list = append(list, KeyOutput{
 				Name: key.Name(),
-				Id:   formatID(key.ID(), req.Options[keyFormatOptionName].(string)),
+				Id:   keyEnc.FormatID(key.ID()),
 			})
 		}
 
@@ -341,14 +348,15 @@ var keyRenameCmd = &cmds.Command{
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption(keyStoreForceOptionName, "f", "Allow to overwrite an existing key."),
-		cmds.StringOption(keyFormatOptionName, "", "output format: b58mh or base36").WithDefault("base36"),
+		cmds.StringOption(keyFormatOptionName, "", "Encoding used for keys: Can either be a multibase encoded CID or a base58btc encoded multihash. Takes {b58mh|base36|k|base32|b...}.").WithDefault("base36"),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env, req)
 		if err != nil {
 			return err
 		}
-		if err = verifyIDFormatLabel(req.Options[keyFormatOptionName].(string)); err != nil {
+		keyEnc, err := keyEncoderFromString(req.Options[keyFormatOptionName].(string))
+		if err != nil {
 			return err
 		}
 
@@ -364,7 +372,7 @@ var keyRenameCmd = &cmds.Command{
 		return cmds.EmitOnce(res, &KeyRenameOutput{
 			Was:       name,
 			Now:       newName,
-			Id:        formatID(key.ID(), req.Options[keyFormatOptionName].(string)), // key.ID().Pretty(),
+			Id:        keyEnc.FormatID(key.ID()),
 			Overwrite: overwritten,
 		})
 	},
@@ -390,14 +398,15 @@ var keyRmCmd = &cmds.Command{
 	},
 	Options: []cmds.Option{
 		cmds.BoolOption("l", "Show extra information about keys."),
-		cmds.StringOption(keyFormatOptionName, "", "output format: b58mh or base36").WithDefault("base36"),
+		cmds.StringOption(keyFormatOptionName, "", "Encoding used for keys: Can either be a multibase encoded CID or a base58btc encoded multihash. Takes {b58mh|base36|k|base32|b...}.").WithDefault("base36"),
 	},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
 		api, err := cmdenv.GetApi(env, req)
 		if err != nil {
 			return err
 		}
-		if err = verifyIDFormatLabel(req.Options[keyFormatOptionName].(string)); err != nil {
+		keyEnc, err := keyEncoderFromString(req.Options[keyFormatOptionName].(string))
+		if err != nil {
 			return err
 		}
 
@@ -412,7 +421,7 @@ var keyRmCmd = &cmds.Command{
 
 			list = append(list, KeyOutput{
 				Name: name,
-				Id:   formatID(key.ID(), req.Options[keyFormatOptionName].(string)),
+				Id:   keyEnc.FormatID(key.ID()),
 			})
 		}
 
@@ -424,30 +433,31 @@ var keyRmCmd = &cmds.Command{
 	Type: KeyOutputList{},
 }
 
-func verifyIDFormatLabel(formatLabel string) error {
+type keyEncoder struct {
+	baseEnc *mbase.Encoder
+}
+
+func keyEncoderFromString(formatLabel string) (keyEncoder, error) {
 	switch formatLabel {
 	case "b58mh", "v0":
-		return nil
+		return keyEncoder{}, nil
 	default:
-		_, err := mbase.EncoderByName(formatLabel)
-		return err
+		if enc, err := mbase.EncoderByName(formatLabel); err != nil {
+			return keyEncoder{}, err
+		} else {
+			return keyEncoder{&enc}, nil
+		}
 	}
 }
 
-func formatID(id peer.ID, formatLabel string) string {
-	switch formatLabel {
-	case "b58mh", "v0":
-		return id.Pretty()
-	default:
-		enc, err := mbase.EncoderByName(formatLabel)
-		if err != nil {
-			panic("invalid IPNS key encoding")
-		}
-		if s, err := peer.ToCid(id).StringOfBase(enc.Encoding()); err != nil {
-			panic(err)
-		} else {
-			return s
-		}
+func (enc keyEncoder) FormatID(id peer.ID) string {
+	if enc.baseEnc == nil {
+		return peer.IDB58Encode(id)
+	}
+	if s, err := peer.ToCid(id).StringOfBase(enc.baseEnc.Encoding()); err != nil {
+		panic(err)
+	} else {
+		return s
 	}
 }
 

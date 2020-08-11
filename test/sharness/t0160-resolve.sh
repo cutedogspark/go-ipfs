@@ -24,8 +24,6 @@ test_expect_success "resolve: prepare dag" '
 test_expect_success "resolve: prepare keys" '
     self_hash=$(ipfs key list --ipns-base=base36 -l | grep self | cut -d " " -f1) &&
     alt_hash=$(ipfs key gen --ipns-base=base36 -t rsa alt)
-    echo self_hash $self_hash
-    echo $(ipfs id -f="<id>")
 '
 
 test_resolve_setup_name() {
