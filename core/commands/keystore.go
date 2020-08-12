@@ -452,6 +452,7 @@ func keyEncoderFromString(formatLabel string) (keyEncoder, error) {
 
 func (enc keyEncoder) FormatID(id peer.ID) string {
 	if enc.baseEnc == nil {
+		//nolint deprecated
 		return peer.IDB58Encode(id)
 	}
 	if s, err := peer.ToCid(id).StringOfBase(enc.baseEnc.Encoding()); err != nil {
