@@ -167,7 +167,8 @@ test_expect_success 'setup p2p listener on the receiver' '
 '
 
 test_expect_success 'setup environment' '
-    RECEIVER_ID="$(iptb attr get 1 id)"
+#     RECEIVER_ID="$(iptb attr get 1 id)"
+    RECEIVER_ID="$(ipfsi 1 id -f=\"<id>\" --peerid-base=base36)"
 '
 
 test_expect_success 'handle proxy http request sends bad-gateway when remote server not available ' '
