@@ -11,12 +11,10 @@ test_expect_success "resolve: prepare files" '
   echo "a/b/c" >a/b/c &&
   a_hash=$(ipfs add -q -r a | tail -n1) &&
   b_hash=$(ipfs add -q -r a/b | tail -n1) &&
-  c_hash=$(ipfs add -q -r a/b/c | tail -n1)
-  a_hash_b32=$(cid-fmt -v 1 -b b %s $a_hash)
-  b_hash_b32=$(cid-fmt -v 1 -b b %s $b_hash)
+  c_hash=$(ipfs add -q -r a/b/c | tail -n1) &&
+  a_hash_b32=$(cid-fmt -v 1 -b b %s $a_hash) &&
+  b_hash_b32=$(cid-fmt -v 1 -b b %s $b_hash) &&
   c_hash_b32=$(cid-fmt -v 1 -b b %s $c_hash)
-  echo 'abc_hash:' $a_hash $b_hash $c_hash
-  echo 'abc_hash_b32:' $a_hash_b32 $b_hash_b32 $c_hash_b32 
 '
 
 test_expect_success "resolve: prepare dag" '
